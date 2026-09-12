@@ -29,3 +29,13 @@ def test_feed_variants_share_identity():
     one = normalize_channel(parse_playlist('#EXTINF:-1 tvg-id="CNN.us@East",CNN\nhttps://example.test/1', "one")[0])
     two = normalize_channel(parse_playlist('#EXTINF:-1 tvg-id="CNN.us@West",CNN\nhttps://example.test/2', "two")[0])
     assert one.identity == two.identity == "id:cnn.us"
+
+
+def test_us_catalog_id_does_not_override_spanish_name():
+    channel = parse_playlist('#EXTINF:-1 tvg-country="US",Naruto en español\nhttps://example.test/1', "one")[0]
+    assert normalize_channel(channel).language == "es"
+
+
+def test_latin_america_without_language_is_unknown():
+    channel = parse_playlist('#EXTINF:-1 tvg-country="US",DreamWorks Latin America\nhttps://example.test/1', "one")[0]
+    assert normalize_channel(channel).language == "unknown"

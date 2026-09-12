@@ -28,6 +28,16 @@ def classify_language(channel: Channel) -> str:
         return aliases[explicit]
     if explicit and explicit != "unknown":
         return explicit[:2]
+    combined = " ".join((channel.name, channel.group, channel.attrs.get("metadata-name", ""), channel.attrs.get("metadata-alt-names", ""))).lower()
+    if re.search(r"(?:en\s+espa[nñ]ol|las\s+tortugas|espa[nñ]ol|castellano)", combined):
+        return "es"
+    if re.search(r"(?:em\s+portugu[eê]s|portugu[eê]s)", combined):
+        return "pt"
+    if re.search(r"(?:en\s+fran[cç]ais|fran[cç]ais)", combined):
+        return "fr"
+    # A regional label is not evidence of English, even when a FAST channel has a US catalog ID.
+    if re.search(r"(?:latin america|latinoam[eé]rica)", combined):
+        return "unknown"
     if channel.country.lower() in ENGLISH_COUNTRIES:
         return "en"
     if channel.country.lower() in COUNTRY_LANGUAGES:
@@ -35,7 +45,6 @@ def classify_language(channel: Channel) -> str:
     group = channel.group.lower()
     if any(word in group for word in ("english", "united states", "united kingdom", "canada", "australia")):
         return "en"
-    combined = f"{channel.name} {channel.group}"
     if re.search(r"[\u4e00-\u9fff]", combined):
         return "zh"
     if re.search(r"[\u3040-\u30ff]", combined):
