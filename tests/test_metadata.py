@@ -9,3 +9,11 @@ def test_authoritative_metadata_enriches_language_country_and_id():
     assert channel.tvg_id == "CNN.us"
     assert channel.country == "US"
     assert channel.language == "en"
+
+
+def test_feed_suffix_uses_authoritative_base_channel():
+    catalog = MetadataCatalog([{"id": "Narutoenespanol.us", "name": "Naruto en Español", "alt_names": [], "country": "US", "languages": ["spa"]}])
+    channel = Channel("Naruto", "https://example.test/live", "sample", tvg_id="Narutoenespanol.us@SD")
+    assert catalog.enrich(channel) == "tvg-id"
+    assert channel.tvg_id == "Narutoenespanol.us"
+    assert channel.language == "es"

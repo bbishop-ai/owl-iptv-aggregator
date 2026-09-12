@@ -54,7 +54,8 @@ def normalize_channel(channel: Channel) -> Channel:
     channel.name = re.sub(r"\s+", " ", channel.name).strip()
     channel.language = classify_language(channel)
     key = normalized_name(channel.name)
-    channel.identity = f"id:{channel.tvg_id.lower()}" if channel.tvg_id else f"name:{key}"
+    base_id = channel.tvg_id.split("@", 1)[0]
+    channel.identity = f"id:{base_id.lower()}" if base_id else f"name:{key}"
     return channel
 
 

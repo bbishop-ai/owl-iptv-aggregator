@@ -23,3 +23,9 @@ def test_non_latin_scripts_are_not_unknown():
     channel = normalize_channel(parse_playlist("央视新闻,https://example.test/x", "sample")[0])
     assert channel.language == "zh"
     assert not language_allowed(channel, ["en"], True)
+
+
+def test_feed_variants_share_identity():
+    one = normalize_channel(parse_playlist('#EXTINF:-1 tvg-id="CNN.us@East",CNN\nhttps://example.test/1', "one")[0])
+    two = normalize_channel(parse_playlist('#EXTINF:-1 tvg-id="CNN.us@West",CNN\nhttps://example.test/2', "two")[0])
+    assert one.identity == two.identity == "id:cnn.us"

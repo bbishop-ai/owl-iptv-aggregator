@@ -26,13 +26,15 @@ class MetadataCatalog:
         self.by_name = {key: values[0] for key, values in names.items() if len({v.get("id") for v in values}) == 1}
 
     def enrich(self, channel: Channel) -> str:
-        row = self.by_id.get(channel.tvg_id.lower()) if channel.tvg_id else None
+        base_id = channel.tvg_id.split("@", 1)[0]
+        row = self.by_id.get(base_id.lower()) if base_id else None
         method = "tvg-id"
         if row is None:
             row = self.by_name.get(normalized_name(channel.tvg_name or channel.name))
             method = "normalized-name"
         if row is None:
             return "none"
+        channel.tvg_id = base_id or channel.tvg_id
         if not channel.tvg_id and row.get("id"):
             channel.tvg_id = str(row["id"])
         channel.country = str(row.get("country") or channel.country).upper()
