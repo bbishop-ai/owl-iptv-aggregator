@@ -4,6 +4,7 @@ import asyncio
 import gzip
 import io
 import json
+import re
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -22,6 +23,17 @@ class EPGData:
     programmes: dict[str, list[ET.Element]] = field(default_factory=lambda: defaultdict(list))
 
 
+def normalized_epg_id(value: str) -> str:
+    """Collapse known XMLTV provider suffixes without guessing across channels."""
+    value = value.strip().casefold().split("@", 1)[0]
+    is_local = bool(re.search(r"\.us_locals\d+$", value))
+    value = re.sub(r"\.us_locals\d+$", ".us", value)
+    value = re.sub(r"(\.[a-z]{2})\d+$", r"\1", value)
+    if is_local:
+        value = re.sub(r"-(?:d|dt|ld|cd|tv)(?=\.us$)", "", value)
+    return value
+
+
 async def fetch_epg(sources: list[dict[str, Any]], timeout_seconds: int = 45, programme_ids: set[str] | None = None, programme_names: set[str] | None = None) -> tuple[EPGData, dict[str, str]]:
     enabled = [s for s in sources if s.get("enabled", True) and s.get("kind") == "epg"]
     timeout = aiohttp.ClientTimeout(total=timeout_seconds)
@@ -36,6 +48,7 @@ async def fetch_epg(sources: list[dict[str, Any]], timeout_seconds: int = 45, pr
                 stream = gzip.GzipFile(fileobj=io.BytesIO(raw)) if raw[:2] == b"\x1f\x8b" else io.BytesIO(raw)
                 parsed = EPGData()
                 wanted_ids = set(programme_ids or set())
+                wanted_id_keys = {normalized_epg_id(value) for value in wanted_ids}
                 root = None
                 for event, element in ET.iterparse(stream, events=("start", "end")):
                     if event == "start" and root is None:
@@ -43,9 +56,12 @@ async def fetch_epg(sources: list[dict[str, Any]], timeout_seconds: int = 45, pr
                     if event != "end":
                         continue
                     if element.tag == "channel" and element.get("id"):
-                        parsed.channels[element.get("id", "")] = element
+                        epg_id = element.get("id", "")
+                        parsed.channels[epg_id] = element
+                        if normalized_epg_id(epg_id) in wanted_id_keys:
+                            wanted_ids.add(epg_id)
                         if any(normalized_name(display.text or "") in (programme_names or set()) for display in element.findall("display-name")):
-                            wanted_ids.add(element.get("id", ""))
+                            wanted_ids.add(epg_id)
                     elif element.tag == "programme" and element.get("channel") in wanted_ids:
                         parsed.programmes[element.get("channel", "")].append(element)
                     elif element.tag == "programme":
@@ -70,15 +86,22 @@ async def fetch_epg(sources: list[dict[str, Any]], timeout_seconds: int = 45, pr
 
 def match_channels(channels: list[Channel], epg: EPGData, fuzzy_threshold: int = 96):
     names: dict[str, list[str]] = defaultdict(list)
+    ids: dict[str, list[str]] = defaultdict(list)
     for epg_id, element in epg.channels.items():
+        ids[normalized_epg_id(epg_id)].append(epg_id)
         for display in element.findall("display-name"):
             key = normalized_name(display.text or "")
             if key:
                 names[key].append(epg_id)
-    stats = {"epg_exact_id": 0, "epg_exact_name": 0, "epg_fuzzy": 0, "epg_unmatched": 0}
+    stats = {"epg_exact_id": 0, "epg_normalized_id": 0, "epg_exact_name": 0, "epg_fuzzy": 0, "epg_unmatched": 0}
     for channel in channels:
         if channel.tvg_id in epg.channels:
             stats["epg_exact_id"] += 1
+            continue
+        normalized_ids = ids.get(normalized_epg_id(channel.tvg_id), []) if channel.tvg_id else []
+        if len(normalized_ids) == 1:
+            channel.tvg_id = normalized_ids[0]
+            stats["epg_normalized_id"] += 1
             continue
         try:
             alt_names = json.loads(channel.attrs.get("metadata-alt-names", "[]"))

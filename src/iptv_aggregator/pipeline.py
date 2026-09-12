@@ -88,7 +88,7 @@ async def run(config_path: str) -> dict:
         "final_non_us_english_channels": sum(c.role == "primary" and c.language == "en" and c.country.upper() != "US" for c in selected),
     }
     stats["duplicates_detected"] = stats["prevalidation_candidates_removed"] + stats["exact_url_duplicates_removed"] + stats["identity_duplicates_removed"]
-    matched = stats["epg_exact_id"] + stats["epg_exact_name"] + stats["epg_fuzzy"]
+    matched = stats["epg_exact_id"] + stats["epg_normalized_id"] + stats["epg_exact_name"] + stats["epg_fuzzy"]
     stats["epg_matched"] = matched
     stats["epg_matched_logical_channels"] = sum(c.role == "primary" and c.tvg_id in epg.channels for c in selected)
     stats["epg_coverage_percent"] = round(100 * stats["epg_matched_logical_channels"] / max(stats["final_logical_channels"], 1), 2)

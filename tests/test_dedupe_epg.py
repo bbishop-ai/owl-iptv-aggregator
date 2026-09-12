@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 import json
 
 from iptv_aggregator.dedupe import canonical_url, preselect_candidates, select_streams
-from iptv_aggregator.epg import EPGData, match_channels
+from iptv_aggregator.epg import EPGData, match_channels, normalized_epg_id
 from iptv_aggregator.models import Channel, Validation
 from iptv_aggregator.normalize import normalize_channel
 
@@ -41,3 +41,23 @@ def test_epg_uses_authoritative_aliases():
     stats = match_channels([channel], epg)
     assert channel.tvg_id == "WABC.us"
     assert stats["epg_exact_name"] == 1
+
+
+def test_epg_normalizes_provider_ids_without_guessing():
+    assert normalized_epg_id("Comet.us2") == "comet.us"
+    assert normalized_epg_id("K29ES-D.us_locals1") == "k29es.us"
+    station = ET.fromstring('<channel id="Comet.us2"><display-name>Comet</display-name></channel>')
+    channel = Channel("Not a name match", "https://x.test", "x", tvg_id="Comet.us")
+    stats = match_channels([channel], EPGData(channels={"Comet.us2": station}))
+    assert channel.tvg_id == "Comet.us2"
+    assert stats["epg_normalized_id"] == 1
+
+
+def test_epg_normalized_id_requires_a_unique_target():
+    east = ET.fromstring('<channel id="Comet.us2"><display-name>Comet East</display-name></channel>')
+    west = ET.fromstring('<channel id="Comet.us3"><display-name>Comet West</display-name></channel>')
+    channel = Channel("Unrelated", "https://x.test", "x", tvg_id="Comet.us")
+    stats = match_channels([channel], EPGData(channels={"Comet.us2": east, "Comet.us3": west}))
+    assert channel.tvg_id == "Comet.us"
+    assert stats["epg_normalized_id"] == 0
+    assert stats["epg_unmatched"] == 1
