@@ -1,5 +1,9 @@
-run.log
-*.log
-*.bak
-data/sources/
-FETCH_HEAD
+.cache/
+.pytest_cache/
+__pycache__/
+*.pyc
+build/
+stage/
+public/
+!public/.gitkeep
+

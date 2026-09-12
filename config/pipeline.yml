@@ -1,0 +1,23 @@
+sources_file: config/sources.json
+filter:
+  languages: [en]
+  allow_unknown: true
+fetch:
+  timeout_seconds: 25
+  concurrency: 8
+validation:
+  timeout_seconds: 7
+  concurrency: 40
+  cache_ttl_hours: 24
+  deep_probe_limit: 250
+  candidates_per_identity: 4
+  total_candidate_limit: 5000
+dedupe:
+  backups_per_channel: 1
+epg:
+  timeout_seconds: 45
+  fuzzy_threshold: 96
+publish:
+  directory: public
+  minimum_channels: 1
+  epg_url: https://bbishop-ai.github.io/owl-iptv-aggregator/epg.xml
