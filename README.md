@@ -59,7 +59,7 @@ The workflow runs at minute 17 every six hours and also supports manual dispatch
 
 Validation borrows the strongest practical ideas from the three bases: concurrent availability/latency checks, resolution probing, bounded download/media inspection, cached results, and normalized-name grouping. A five-second sampled frame hash flags a truly static video sample as frozen. Ranking prefers playable, non-frozen, higher-resolution, higher-frame-rate, HTTPS, lower-latency streams. Exact URL variants are removed first; channel identities use `tvg-id` when present and a conservative normalized name otherwise. One primary plus one backup is published where available.
 
-EPG matching is deterministic: exact `tvg-id`, unique normalized-name match, then only an unambiguous high-threshold fuzzy match. The published XMLTV contains matched channels and their programmes, keeping it smaller for a TV device.
+EPG matching is deterministic: exact `tvg-id`, collision-safe normalization of known provider ID suffixes, unique normalized-name match, then only an unambiguous high-threshold fuzzy match. The EPG inputs include the available IPTV-org guide, the merged US national/local/sports guide, and dedicated public Plex and Pluto US guides. The published XMLTV contains only matched channels and their programmes, keeping it smaller for a TV device.
 
 ## Troubleshooting
 

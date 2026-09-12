@@ -108,7 +108,7 @@ def _index(stats: dict) -> str:
 
 
 def _report(stats: dict) -> str:
-    keys = ["upstreams_attempted", "upstreams_succeeded", "raw_channels", "streams_parsed", "confirmed_english", "confirmed_non_english", "unknown_language", "unknown_language_excluded", "final_us_channels", "final_non_us_english_channels", "validation_passed", "validation_failed", "duplicates_detected", "final_logical_channels", "published_backups", "epg_exact_id", "epg_exact_name", "epg_fuzzy", "epg_unmatched", "epg_coverage_percent"]
+    keys = ["upstreams_attempted", "upstreams_succeeded", "raw_channels", "streams_parsed", "confirmed_english", "confirmed_non_english", "unknown_language", "unknown_language_excluded", "final_us_channels", "final_non_us_english_channels", "validation_passed", "validation_failed", "duplicates_detected", "final_logical_channels", "published_backups", "epg_exact_id", "epg_normalized_id", "epg_exact_name", "epg_fuzzy", "epg_unmatched", "epg_coverage_percent"]
     lines = ["# Latest Owl IPTV build", "", f"Generated: {stats['generated_at']}", "", "| Metric | Value |", "|---|---:|"]
     lines += [f"| {key.replace('_', ' ')} | {stats[key]} |" for key in keys]
     return "\n".join(lines) + "\n"
