@@ -1,7 +1,13 @@
 sources_file: config/sources.json
 filter:
   languages: [en]
-  allow_unknown: true
+  countries:
+    prefer: [US]
+  allow_non_us_english: true
+  allow_unknown: false
+metadata:
+  url: https://iptv-org.github.io/api/channels.json
+  timeout_seconds: 30
 fetch:
   timeout_seconds: 25
   concurrency: 8
@@ -19,5 +25,5 @@ epg:
   fuzzy_threshold: 96
 publish:
   directory: public
-  minimum_channels: 1
+  minimum_channels: 500
   epg_url: https://bbishop-ai.github.io/owl-iptv-aggregator/epg.xml

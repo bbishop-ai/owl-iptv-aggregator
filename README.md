@@ -25,7 +25,9 @@ Every scheduled run builds in a staging directory. Failed downloads can use cach
 Edit `config/pipeline.yml`:
 
 - `filter.languages`: ISO-639-1 codes; defaults to `[en]`.
-- `filter.allow_unknown`: defaults to `true`. Unknown-language rows are admitted cautiously because many playlists omit language metadata. Set it to `false` for strict English metadata only.
+- `filter.countries.prefer`: defaults to `[US]` and influences duplicate ranking.
+- `filter.allow_non_us_english`: defaults to `true`, so useful English international channels remain eligible.
+- `filter.allow_unknown`: defaults to `false`. Unknown-language rows are counted and excluded rather than silently treated as English.
 - `validation.deep_probe_limit`: limits expensive ffprobe/frozen-frame checks.
 - `dedupe.backups_per_channel`: defaults to one backup per normalized identity.
 - `publish.minimum_channels`: production floor. Raise this after the first successful run to detect severe regressions.
@@ -48,7 +50,7 @@ For a deliberate local-only source, add a unique record to `config/sources.json`
 
 1. Open **Settings → Pages** and choose **GitHub Actions** as the source.
 2. Open **Actions → Build and publish IPTV → Run workflow** for the first build.
-3. Confirm the Pages deployment and `stats.json`, then set `publish.minimum_channels` to a sensible floor below the observed `published_streams` count.
+3. Confirm the Pages deployment and `stats.json`. The checked-in production floor is 500 logical streams, below the verified baseline but high enough to reject an empty or severely degraded build.
 4. Add the stable playlist and XMLTV URLs to Owl.
 
 The workflow runs at minute 17 every six hours and also supports manual dispatch. `refresh_audit` refreshes the three-repository source inventory during a manual run; normal scheduled runs keep the reviewed, repeatable config stable.
@@ -71,6 +73,7 @@ EPG matching is deterministic: exact `tvg-id`, unique normalized-name match, the
 ## Repository map
 
 - `src/iptv_aggregator/sources.py` — conditional fetch and cache
+- `metadata.py` — authoritative IPTV-org country/language enrichment
 - `parse.py`, `normalize.py` — playlist parsing, metadata, language and identity
 - `validator.py` — availability, latency, resolution, FPS and frozen video
 - `dedupe.py` — conservative grouping and quality ranking
@@ -78,4 +81,3 @@ EPG matching is deterministic: exact `tvg-id`, unique normalized-name match, the
 - `publish.py`, `pipeline.py` — artifact generation, sanity checks and atomic local swap
 - `tools/audit_upstreams.py` — repeatable source inventory/diff generator
 - `audit/` — commit-pinned inventory, diff, and human summary
-

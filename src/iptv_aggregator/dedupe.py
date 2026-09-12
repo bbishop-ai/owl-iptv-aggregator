@@ -14,10 +14,11 @@ def canonical_url(url: str) -> str:
     return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), parts.path.rstrip("/"), urlencode(query), ""))
 
 
-def rank(channel: Channel, validation: Validation) -> tuple:
+def rank(channel: Channel, validation: Validation, preferred_countries: set[str] | None = None) -> tuple:
     pixels = (validation.width or 0) * (validation.height or 0)
     latency = validation.latency_ms if validation.latency_ms is not None else 999_999
-    return (validation.ok, validation.frozen is not True, pixels, validation.height or 0, validation.fps or 0, channel.url.startswith("https://"), -latency)
+    country_preferred = channel.country.upper() in (preferred_countries or set())
+    return (validation.ok, validation.frozen is not True, country_preferred, pixels, validation.height or 0, validation.fps or 0, channel.url.startswith("https://"), -latency)
 
 
 def preselect_candidates(channels: list[Channel], per_identity: int, total_limit: int) -> tuple[list[Channel], int]:
@@ -39,7 +40,7 @@ def preselect_candidates(channels: list[Channel], per_identity: int, total_limit
     return selected, removed
 
 
-def select_streams(channels: list[Channel], validations: dict[str, Validation], backups: int = 1):
+def select_streams(channels: list[Channel], validations: dict[str, Validation], backups: int = 1, preferred_countries: list[str] | None = None):
     exact_seen: set[str] = set()
     by_identity: dict[str, list[Channel]] = defaultdict(list)
     exact_removed = 0
@@ -54,7 +55,8 @@ def select_streams(channels: list[Channel], validations: dict[str, Validation], 
     collapsed = 0
     for candidates in by_identity.values():
         viable = [c for c in candidates if validations.get(c.url, Validation()).ok]
-        viable.sort(key=lambda c: rank(c, validations[c.url]), reverse=True)
+        preferred = {value.upper() for value in (preferred_countries or [])}
+        viable.sort(key=lambda c: rank(c, validations[c.url], preferred), reverse=True)
         keep = viable[: 1 + backups]
         for index, channel in enumerate(keep):
             channel.role = "primary" if index == 0 else "backup"

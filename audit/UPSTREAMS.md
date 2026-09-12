@@ -10,6 +10,10 @@ Generated from operational code/config, not README lists.
 
 Canonical audited superset: **235** sources.
 Sources added beyond cs3306: **190**.
+Shared by multiple projects: **6**.
+Unique to `cs3306/IPTV-sources`: **42**.
+Unique to `HerbertHe/iptv-sources`: **22**.
+Unique to `walke2019/iptv-api-two`: **165**.
 Completeness assertion: **True**.
 
-Machine-readable evidence: `upstream_inventory.json` and `source_diff.json`.
+Machine-readable evidence (including every URL list): `upstream_inventory.json` and `source_diff.json`.

@@ -3080,16 +3080,16 @@
       ]
     },
     {
-      "id": "8ccf15be8002",
-      "url": "https://raw.githubusercontent.com/StrangeDrVN/epg/public/output/guide.xml.gz",
+      "id": "cb966f20c3a1",
+      "url": "https://vcicio.github.io/US-EPG/merged_epg.xml.gz",
       "kind": "epg",
       "enabled": true,
       "cloud_compatible": true,
       "provenance": [
-        "iptv-org/epg GUIDES.md"
+        "US-EPG (built from iptv-org/epg-listed EPGshare inputs)"
       ],
       "declared_urls": [
-        "https://raw.githubusercontent.com/StrangeDrVN/epg/public/output/guide.xml.gz"
+        "https://vcicio.github.io/US-EPG/merged_epg.xml.gz"
       ]
     }
   ]

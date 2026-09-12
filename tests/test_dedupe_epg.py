@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+import json
 
 from iptv_aggregator.dedupe import canonical_url, preselect_candidates, select_streams
 from iptv_aggregator.epg import EPGData, match_channels
@@ -30,4 +31,13 @@ def test_epg_exact_id_then_exact_name():
     channels = [normalize_channel(Channel("BBC One HD", "https://x.test", "x"))]
     stats = match_channels(channels, epg)
     assert channels[0].tvg_id == "bbc.one.uk"
+    assert stats["epg_exact_name"] == 1
+
+
+def test_epg_uses_authoritative_aliases():
+    station = ET.fromstring('<channel id="WABC.us"><display-name>ABC 7 New York</display-name></channel>')
+    epg = EPGData(channels={"WABC.us": station})
+    channel = normalize_channel(Channel("WABC-TV", "https://x.test", "x", attrs={"metadata-alt-names": json.dumps(["ABC 7 New York"])}))
+    stats = match_channels([channel], epg)
+    assert channel.tvg_id == "WABC.us"
     assert stats["epg_exact_name"] == 1

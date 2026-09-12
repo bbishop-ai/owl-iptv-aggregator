@@ -104,7 +104,7 @@ def build(roots: dict[str, Path], output_root: Path):
     # Curated IPTV-org English EPG guides; separated from the audited three-repo superset.
     additions = [
         ("https://worker-9dd4.onrender.com/guide.xml.gz", "iptv-org/epg GUIDES.md"),
-        ("https://raw.githubusercontent.com/StrangeDrVN/epg/public/output/guide.xml.gz", "iptv-org/epg GUIDES.md"),
+        ("https://vcicio.github.io/US-EPG/merged_epg.xml.gz", "US-EPG (built from iptv-org/epg-listed EPGshare inputs)"),
     ]
     for url, provenance in additions:
         if url not in grouped:
@@ -117,6 +117,12 @@ def build(roots: dict[str, Path], output_root: Path):
         "missing_from_base": sorted(other - base), "already_in_base": sorted(base & other),
         "superset_count": len(base | other), "config_contains_all_audited": set(grouped).issubset({s["url"] for s in sources}),
     }
+    all_sets = {repo: set(values) for repo, values in repo_sets.items()}
+    diff["shared_by_multiple_projects"] = sorted(url for url in grouped if sum(url in values for values in all_sets.values()) > 1)
+    diff["unique_by_project"] = {
+        repo: sorted(values - set().union(*(other_values for other_repo, other_values in all_sets.items() if other_repo != repo)))
+        for repo, values in all_sets.items()
+    }
     inventory = {"schema": 1, "repositories": {repo: {"url": REPOSITORIES[repo], "commit": git_sha(root)} for repo, root in roots.items()}, "occurrences": occurrences, "canonical_sources": sources, "counts_by_repo": {repo: len(values) for repo, values in repo_sets.items()}}
     (output_root / "audit").mkdir(parents=True, exist_ok=True)
     (output_root / "config").mkdir(parents=True, exist_ok=True)
@@ -126,7 +132,10 @@ def build(roots: dict[str, Path], output_root: Path):
     md = ["# Upstream source audit", "", "Generated from operational code/config, not README lists.", "", "| Repository | Commit | Occurrences |", "|---|---|---:|"]
     for repo, details in inventory["repositories"].items():
         md.append(f"| `{repo}` | `{details['commit']}` | {inventory['counts_by_repo'][repo]} |")
-    md += ["", f"Canonical audited superset: **{diff['superset_count']}** sources.", f"Sources added beyond cs3306: **{len(diff['missing_from_base'])}**.", f"Completeness assertion: **{diff['config_contains_all_audited']}**.", "", "Machine-readable evidence: `upstream_inventory.json` and `source_diff.json`."]
+    md += ["", f"Canonical audited superset: **{diff['superset_count']}** sources.", f"Sources added beyond cs3306: **{len(diff['missing_from_base'])}**.", f"Shared by multiple projects: **{len(diff['shared_by_multiple_projects'])}**."]
+    for repo, values in diff["unique_by_project"].items():
+        md.append(f"Unique to `{repo}`: **{len(values)}**.")
+    md += [f"Completeness assertion: **{diff['config_contains_all_audited']}**.", "", "Machine-readable evidence (including every URL list): `upstream_inventory.json` and `source_diff.json`."]
     (output_root / "audit" / "UPSTREAMS.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     if not diff["config_contains_all_audited"]:
         raise SystemExit("superset completeness check failed")
