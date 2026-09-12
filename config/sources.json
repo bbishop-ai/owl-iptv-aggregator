@@ -3091,6 +3091,32 @@
       "declared_urls": [
         "https://vcicio.github.io/US-EPG/merged_epg.xml.gz"
       ]
+    },
+    {
+      "id": "808cdd193b16",
+      "url": "https://epgshare01.online/epgshare01/epg_ripper_PLEX1.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "EPGshare01 Plex guide"
+      ],
+      "declared_urls": [
+        "https://epgshare01.online/epgshare01/epg_ripper_PLEX1.xml.gz"
+      ]
+    },
+    {
+      "id": "083f624cde11",
+      "url": "https://i.mjh.nz/PlutoTV/us.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "Matt Huisman Pluto TV US guide"
+      ],
+      "declared_urls": [
+        "https://i.mjh.nz/PlutoTV/us.xml.gz"
+      ]
     }
   ]
 }
