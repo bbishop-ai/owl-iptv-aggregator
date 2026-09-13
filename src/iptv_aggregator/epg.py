@@ -29,6 +29,7 @@ def quality_stripped(name: str) -> str:
 class EPGData:
     channels: dict[str, ET.Element] = field(default_factory=dict)
     programmes: dict[str, list[ET.Element]] = field(default_factory=lambda: defaultdict(list))
+    channel_source: dict[str, str] = field(default_factory=dict)
 
 
 def normalized_epg_id(value: str) -> str:
@@ -80,65 +81,127 @@ async def fetch_epg(sources: list[dict[str, Any]], timeout_seconds: int = 45, pr
             except Exception as exc:
                 return source, None, f"failed: {exc}"
         results = await asyncio.gather(*(one(source) for source in enabled))
-    for source, parsed, status in results:
+    for source, parsed, status in sorted(results, key=lambda r: _epg_source_rank(r[0])):
         statuses[source["id"]] = status
         if parsed is None:
             continue
         for channel_id, element in parsed.channels.items():
             if channel_id and channel_id not in data.channels:
                 data.channels[channel_id] = element
+                data.channel_source[channel_id] = source["id"]
         for channel_id, programmes in parsed.programmes.items():
             data.programmes[channel_id].extend(programmes)
     return data, statuses
 
 
+def _url_provider_hex(url: str) -> tuple[str | None, str | None]:
+    """(provider, provider-native id) from jmp2.uk short links, else (None, None)."""
+    m = re.search(r"jmp2\.uk/([a-z]{3})-([0-9a-f]{16,32})", url or "")
+    if not m:
+        return None, None
+    return {"plu": "pluto", "plx": "plex", "sam": "samsung", "rok": "roku", "tub": "tubi", "xum": "xumo"}.get(m.group(1)), m.group(2)
+
+
+def _epg_source_rank(source: dict[str, Any]) -> int:
+    """Guide priority: authoritative per-provider guides first, generic last."""
+    url = str(source.get("url", ""))
+    if "i.mjh.nz" in url:
+        return 0
+    if "BuddyChewChew" in url:
+        return 1
+    if "epgshare01" in url:
+        return 2
+    if "vcicio" in url:
+        return 3
+    if "onrender.com" in url:
+        return 4
+    return 5
+
+
 def match_channels(channels: list[Channel], epg: EPGData, fuzzy_threshold: int = 96):
-    # Index both the raw normalized names and quality-stripped variants. The
-    # stripped variants let "Anime x HIDIVE (720p)" join "ANIME x HIDIVE" while
-    # the raw variants keep resolution variants (e.g. two feeds of one channel)
-    # distinguishable for channels that carry them.
-    names: dict[str, list[str]] = defaultdict(list)
-    ids: dict[str, list[str]] = defaultdict(list)
-    for epg_id, element in epg.channels.items():
-        ids[normalized_epg_id(epg_id)].append(epg_id)
-        for display in element.findall("display-name"):
-            raw = normalized_name(display.text or "")
-            if raw:
-                names[raw].append(epg_id)
-            stripped = quality_stripped(display.text or "")
-            if stripped and stripped != raw:
-                names[stripped].append(epg_id)
-    stats = {"epg_exact_id": 0, "epg_normalized_id": 0, "epg_exact_name": 0, "epg_fuzzy": 0, "epg_unmatched": 0}
+    """Match channels to EPG ids.
+
+    Strategy: per-guide matching in priority order. A name that is unique
+    within one guide is a confident join even when a low-priority guide reuses
+    the same name for an unrelated channel (global-ambiguity matching would
+    block these joins, and did: coverage fell 27.5% -> 18% when the guides were
+    pooled globally).
+    """
+    stats = {"epg_exact_id": 0, "epg_normalized_id": 0, "epg_exact_name": 0, "epg_fuzzy": 0, "epg_url_id": 0, "epg_unmatched": 0}
+
+    # Pass 0: URL-embedded provider ids (zero ambiguity — provider's own id space).
+    unassigned = []
     for channel in channels:
         if channel.tvg_id in epg.channels:
             stats["epg_exact_id"] += 1
             continue
-        normalized_ids = ids.get(normalized_epg_id(channel.tvg_id), []) if channel.tvg_id else []
-        if len(normalized_ids) == 1:
-            channel.tvg_id = normalized_ids[0]
-            stats["epg_normalized_id"] += 1
+        _, hex_id = _url_provider_hex(channel.url)
+        if hex_id and hex_id in epg.channels:
+            channel.tvg_id = hex_id
+            stats["epg_url_id"] += 1
             continue
-        try:
-            alt_names = json.loads(channel.attrs.get("metadata-alt-names", "[]"))
-        except json.JSONDecodeError:
-            alt_names = []
-        keys = set()
-        for value in [channel.tvg_name, channel.name, channel.attrs.get("metadata-name", ""), *alt_names]:
-            if value:
-                keys.add(normalized_name(value))
-                keys.add(quality_stripped(value))
-        keys.discard("")
-        exact_ids = {ids[0] for key in keys for ids in [names.get(key, [])] if len(ids) == 1}
-        if len(exact_ids) == 1:
-            channel.tvg_id = exact_ids.pop()
-            stats["epg_exact_name"] += 1
-            continue
-        # Fuzzy: compare word-order-insensitively and require a unique best target.
-        scored = sorted(((max((token_sort_ratio(key, candidate) for key in keys), default=0), ids) for candidate, ids in names.items()), reverse=True)
-        if scored and scored[0][0] >= fuzzy_threshold and len(scored[0][1]) == 1 and (len(scored) == 1 or scored[0][0] > scored[1][0]):
-            channel.tvg_id = scored[0][1][0]
-            stats["epg_fuzzy"] += 1
-        else:
+        unassigned.append(channel)
+
+    # Group guide channels by source, highest-priority guide first. EPGData
+    # built without source attribution (e.g. hand-assembled in tests) is
+    # matched as a single trailing orphan group.
+    by_source: dict[str, list[str]] = defaultdict(list)
+    for epg_id, src in epg.channel_source.items():
+        by_source[src].append(epg_id)
+    orphan_ids = [epg_id for epg_id in epg.channels if epg_id not in epg.channel_source]
+    if orphan_ids:
+        by_source[""] = orphan_ids
+
+    def name_variants(value: str) -> set[str]:
+        out = set()
+        if value:
+            out.add(normalized_name(value))
+            out.add(quality_stripped(value))
+        out.discard("")
+        return out
+
+    for src, epg_ids in by_source.items():
+        names: dict[str, list[str]] = defaultdict(list)
+        ids: dict[str, list[str]] = defaultdict(list)
+        for epg_id in epg_ids:
+            element = epg.channels.get(epg_id)
+            if element is None:
+                continue
+            ids[normalized_epg_id(epg_id)].append(epg_id)
+            for display in element.findall("display-name"):
+                raw = normalized_name(display.text or "")
+                if raw:
+                    names[raw].append(epg_id)
+                stripped = quality_stripped(display.text or "")
+                if stripped and stripped != raw:
+                    names[stripped].append(epg_id)
+        for channel in unassigned:
+            if channel.tvg_id in epg.channels:
+                continue
+            normalized_ids = ids.get(normalized_epg_id(channel.tvg_id), []) if channel.tvg_id else []
+            if len(normalized_ids) == 1:
+                channel.tvg_id = normalized_ids[0]
+                stats["epg_normalized_id"] += 1
+                continue
+            try:
+                alt_names = json.loads(channel.attrs.get("metadata-alt-names", "[]"))
+            except json.JSONDecodeError:
+                alt_names = []
+            keys = set()
+            for value in [channel.tvg_name, channel.name, channel.attrs.get("metadata-name", ""), *alt_names]:
+                keys |= name_variants(value)
+            exact_ids = {ids[0] for key in keys for ids in [names.get(key, [])] if len(ids) == 1}
+            if len(exact_ids) == 1:
+                channel.tvg_id = exact_ids.pop()
+                stats["epg_exact_name"] += 1
+                continue
+            # Fuzzy: word-order-insensitive, unique best target within this guide.
+            scored = sorted(((max((token_sort_ratio(key, candidate) for key in keys), default=0), ids) for candidate, ids in names.items()), reverse=True)
+            if scored and scored[0][0] >= fuzzy_threshold and len(scored[0][1]) == 1 and (len(scored) == 1 or scored[0][0] > scored[1][0]):
+                channel.tvg_id = scored[0][1][0]
+                stats["epg_fuzzy"] += 1
+    for channel in unassigned:
+        if channel.tvg_id not in epg.channels:
             stats["epg_unmatched"] += 1
     return stats
 
