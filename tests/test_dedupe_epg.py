@@ -61,3 +61,53 @@ def test_epg_normalized_id_requires_a_unique_target():
     assert channel.tvg_id == "Comet.us"
     assert stats["epg_normalized_id"] == 0
     assert stats["epg_unmatched"] == 1
+
+
+def test_epg_quality_tokens_do_not_block_name_join():
+    station = ET.fromstring('<channel id="AnimeXHIDIVE.us"><display-name>ANIME x HIDIVE</display-name></channel>')
+    epg = EPGData(channels={"AnimeXHIDIVE.us": station})
+    channel = Channel("ANIME x HIDIVE (720p) [Not 24/7]", "https://x.test", "x")
+    stats = match_channels([channel], epg)
+    assert channel.tvg_id == "AnimeXHIDIVE.us"
+    assert stats["epg_exact_name"] == 1
+
+
+def test_epg_backup_suffix_does_not_block_name_join():
+    station = ET.fromstring('<channel id="SouthPark.us"><display-name>South Park</display-name></channel>')
+    epg = EPGData(channels={"SouthPark.us": station})
+    channel = Channel("South Park [backup]", "https://x.test", "x")
+    stats = match_channels([channel], epg)
+    assert channel.tvg_id == "SouthPark.us"
+    assert stats["epg_exact_name"] == 1
+
+
+def test_epg_resolution_variants_not_guessed():
+    east = ET.fromstring('<channel id="Feed.us720"><display-name>Feed (720p)</display-name></channel>')
+    best = ET.fromstring('<channel id="Feed.us1080"><display-name>Feed (1080p)</display-name></channel>')
+    epg = EPGData(channels={"Feed.us720": east, "Feed.us1080": best})
+    channel = Channel("Feed (1080p)", "https://x.test", "x", tvg_id="Feed.us")
+    stats = match_channels([channel], epg)
+    # Both guide names collapse to the same key ("feed"), so the id cannot be
+    # picked from names; the original tvg-id stays untouched.
+    assert channel.tvg_id == "Feed.us"
+    assert stats["epg_unmatched"] == 1
+
+
+def test_epg_fuzzy_word_order_join():
+    station = ET.fromstring('<channel id="TYT.us"><display-name>The Young Turks (TYT)</display-name></channel>')
+    epg = EPGData(channels={"TYT.us": station})
+    channel = Channel("TYT - The Young Turks", "https://x.test", "x")
+    stats = match_channels([channel], epg, fuzzy_threshold=93)
+    assert channel.tvg_id == "TYT.us"
+    assert stats["epg_fuzzy"] == 1
+
+
+def test_epg_ambiguous_stripped_key_not_auto_joined():
+    sd = ET.fromstring('<channel id="FeedA.us"><display-name>Feed</display-name></channel>')
+    hd = ET.fromstring('<channel id="FeedB.us"><display-name>Feed</display-name></channel>')
+    epg = EPGData(channels={"FeedA.us": sd, "FeedB.us": hd})
+    channel = Channel("Feed [backup]", "https://x.test", "x")
+    stats = match_channels([channel], epg)
+    # "feed" is claimed by two guide channels, so the join must stay off.
+    assert channel.tvg_id == ""
+    assert stats["epg_unmatched"] == 1

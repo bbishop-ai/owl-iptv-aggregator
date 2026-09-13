@@ -11,10 +11,18 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import aiohttp
-from rapidfuzz.fuzz import ratio
+from rapidfuzz.fuzz import ratio, token_sort_ratio
 
 from .models import Channel
 from .normalize import normalized_name
+
+
+JUNK_WORDS = re.compile(r"\b(?:360p|480p|576p|216p|uhd|fhd|hd|sd|4k|8k|backup|mirror|not 24 7)\b")
+
+
+def quality_stripped(name: str) -> str:
+    """normalized_name with resolution/quality/availability junk removed (join-only)."""
+    return re.sub(r"\s+", " ", JUNK_WORDS.sub(" ", normalized_name(name))).strip()
 
 
 @dataclass
@@ -85,14 +93,21 @@ async def fetch_epg(sources: list[dict[str, Any]], timeout_seconds: int = 45, pr
 
 
 def match_channels(channels: list[Channel], epg: EPGData, fuzzy_threshold: int = 96):
+    # Index both the raw normalized names and quality-stripped variants. The
+    # stripped variants let "Anime x HIDIVE (720p)" join "ANIME x HIDIVE" while
+    # the raw variants keep resolution variants (e.g. two feeds of one channel)
+    # distinguishable for channels that carry them.
     names: dict[str, list[str]] = defaultdict(list)
     ids: dict[str, list[str]] = defaultdict(list)
     for epg_id, element in epg.channels.items():
         ids[normalized_epg_id(epg_id)].append(epg_id)
         for display in element.findall("display-name"):
-            key = normalized_name(display.text or "")
-            if key:
-                names[key].append(epg_id)
+            raw = normalized_name(display.text or "")
+            if raw:
+                names[raw].append(epg_id)
+            stripped = quality_stripped(display.text or "")
+            if stripped and stripped != raw:
+                names[stripped].append(epg_id)
     stats = {"epg_exact_id": 0, "epg_normalized_id": 0, "epg_exact_name": 0, "epg_fuzzy": 0, "epg_unmatched": 0}
     for channel in channels:
         if channel.tvg_id in epg.channels:
@@ -107,13 +122,19 @@ def match_channels(channels: list[Channel], epg: EPGData, fuzzy_threshold: int =
             alt_names = json.loads(channel.attrs.get("metadata-alt-names", "[]"))
         except json.JSONDecodeError:
             alt_names = []
-        keys = {normalized_name(value) for value in [channel.tvg_name, channel.name, channel.attrs.get("metadata-name", ""), *alt_names] if value}
+        keys = set()
+        for value in [channel.tvg_name, channel.name, channel.attrs.get("metadata-name", ""), *alt_names]:
+            if value:
+                keys.add(normalized_name(value))
+                keys.add(quality_stripped(value))
+        keys.discard("")
         exact_ids = {ids[0] for key in keys for ids in [names.get(key, [])] if len(ids) == 1}
         if len(exact_ids) == 1:
             channel.tvg_id = exact_ids.pop()
             stats["epg_exact_name"] += 1
             continue
-        scored = sorted(((max((ratio(key, candidate) for key in keys), default=0), ids) for candidate, ids in names.items()), reverse=True)
+        # Fuzzy: compare word-order-insensitively and require a unique best target.
+        scored = sorted(((max((token_sort_ratio(key, candidate) for key in keys), default=0), ids) for candidate, ids in names.items()), reverse=True)
         if scored and scored[0][0] >= fuzzy_threshold and len(scored[0][1]) == 1 and (len(scored) == 1 or scored[0][0] > scored[1][0]):
             channel.tvg_id = scored[0][1][0]
             stats["epg_fuzzy"] += 1

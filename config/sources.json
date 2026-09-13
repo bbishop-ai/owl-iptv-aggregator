@@ -3131,6 +3131,123 @@
       "declared_urls": [
         "bundled://user/cleaned-merged-playlist-2-with-epg"
       ]
+    },
+    {
+      "id": "e26ebce68286",
+      "url": "https://i.mjh.nz/Plex/us.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "Matt Huisman Plex US guide"
+      ],
+      "declared_urls": [
+        "https://i.mjh.nz/Plex/us.xml.gz"
+      ]
+    },
+    {
+      "id": "3e664563ee5c",
+      "url": "https://i.mjh.nz/SamsungTVPlus/us.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "Matt Huisman Samsung TV Plus US guide"
+      ],
+      "declared_urls": [
+        "https://i.mjh.nz/SamsungTVPlus/us.xml.gz"
+      ]
+    },
+    {
+      "id": "ee32c8f2b2ec",
+      "url": "https://i.mjh.nz/Roku/all.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "Matt Huisman Roku guide"
+      ],
+      "declared_urls": [
+        "https://i.mjh.nz/Roku/all.xml.gz"
+      ]
+    },
+    {
+      "id": "ed40b4d53422",
+      "url": "https://i.mjh.nz/PBS/all.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "Matt Huisman PBS guide"
+      ],
+      "declared_urls": [
+        "https://i.mjh.nz/PBS/all.xml.gz"
+      ]
+    },
+    {
+      "id": "0e3d5b63f430",
+      "url": "https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/tubi_epg.xml",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "BuddyChewChew Tubi guide"
+      ],
+      "declared_urls": [
+        "https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/tubi_epg.xml"
+      ]
+    },
+    {
+      "id": "c624d6a954e9",
+      "url": "https://raw.githubusercontent.com/BuddyChewChew/xumo-playlist-generator/main/playlists/xumo_epg.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "BuddyChewChew Xumo guide"
+      ],
+      "declared_urls": [
+        "https://raw.githubusercontent.com/BuddyChewChew/xumo-playlist-generator/main/playlists/xumo_epg.xml.gz"
+      ]
+    },
+    {
+      "id": "b591002085a9",
+      "url": "https://epgshare01.online/epgshare01/epg_ripper_US2.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "EPGshare01 US guide 2"
+      ],
+      "declared_urls": [
+        "https://epgshare01.online/epgshare01/epg_ripper_US2.xml.gz"
+      ]
+    },
+    {
+      "id": "6faf2b0f2604",
+      "url": "https://epgshare01.online/epgshare01/epg_ripper_US_LOCALS1.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "EPGshare01 US locals guide"
+      ],
+      "declared_urls": [
+        "https://epgshare01.online/epgshare01/epg_ripper_US_LOCALS1.xml.gz"
+      ]
+    },
+    {
+      "id": "74f4bd8a4dda",
+      "url": "https://epgshare01.online/epgshare01/epg_ripper_US_SPORTS1.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "EPGshare01 US sports guide"
+      ],
+      "declared_urls": [
+        "https://epgshare01.online/epgshare01/epg_ripper_US_SPORTS1.xml.gz"
+      ]
     }
   ]
 }
