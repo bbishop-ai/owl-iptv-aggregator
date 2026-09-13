@@ -3117,6 +3117,20 @@
       "declared_urls": [
         "https://i.mjh.nz/PlutoTV/us.xml.gz"
       ]
+    },
+    {
+      "id": "user-cleaned-20260913",
+      "url": "bundled://user/cleaned-merged-playlist-2-with-epg",
+      "path": "config/playlists/user-cleaned-merged-playlist-2-with-epg.m3u",
+      "kind": "playlist",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "User-provided cleaned_merged_playlist 2.with-epg.m3u"
+      ],
+      "declared_urls": [
+        "bundled://user/cleaned-merged-playlist-2-with-epg"
+      ]
     }
   ]
 }

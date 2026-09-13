@@ -12,8 +12,9 @@ from .parse import parse_playlist
 
 
 class SourceFetcher:
-    def __init__(self, cache_dir: Path, timeout: int = 25, concurrency: int = 8):
+    def __init__(self, cache_dir: Path, timeout: int = 25, concurrency: int = 8, root_dir: Path | None = None):
         self.cache_dir = cache_dir
+        self.root_dir = (root_dir or cache_dir.parents[1]).resolve()
         self.timeout = timeout
         self.semaphore = asyncio.Semaphore(concurrency)
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -26,6 +27,20 @@ class SourceFetcher:
             return await asyncio.gather(*(self._fetch(session, source) for source in enabled))
 
     async def _fetch(self, session: aiohttp.ClientSession, source: dict[str, Any]):
+        if source.get("path"):
+            try:
+                path = (self.root_dir / source["path"]).resolve()
+                path.relative_to(self.root_dir)
+                raw = path.read_bytes()
+                if len(raw) > int(source.get("max_bytes", 25_000_000)):
+                    raise ValueError("source exceeds max_bytes")
+                channels = parse_playlist(raw.decode("utf-8", errors="replace"), source["id"])
+                if not channels:
+                    raise ValueError("no channels parsed")
+                return source, channels, "bundled"
+            except Exception as exc:
+                return source, [], f"failed: {exc}"
+
         key = hashlib.sha256(source["url"].encode()).hexdigest()
         body_path = self.cache_dir / f"{key}.body"
         meta_path = self.cache_dir / f"{key}.json"
@@ -61,4 +76,3 @@ class SourceFetcher:
                 if cached:
                     return source, cached, f"stale-cache: {exc}"
             return source, [], f"failed: {exc}"
-

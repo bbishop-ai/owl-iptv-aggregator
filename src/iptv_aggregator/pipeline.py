@@ -27,7 +27,7 @@ async def run(config_path: str) -> dict:
     if stage.exists():
         shutil.rmtree(stage)
     stage.mkdir(parents=True)
-    fetcher = SourceFetcher(work / "source-cache", cfg["fetch"]["timeout_seconds"], cfg["fetch"]["concurrency"])
+    fetcher = SourceFetcher(work / "source-cache", cfg["fetch"]["timeout_seconds"], cfg["fetch"]["concurrency"], root)
     fetched = await fetcher.fetch_all(sources)
     channels = [channel for _, items, _ in fetched for channel in items]
     raw_count = len(channels)
