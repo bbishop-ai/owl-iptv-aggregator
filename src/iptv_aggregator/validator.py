@@ -23,8 +23,17 @@ class Validator:
         self.deep_limit = deep_limit
         self.cache = json.loads(cache_path.read_text()) if cache_path.exists() else {}
 
-    async def validate(self, channels: list[Channel], skip_urls: set[str] | None = None) -> dict[str, Validation]:
+    # Soft-validation: responses that PROVE a link is dead. Anything else
+    # (403/429 blocks, timeouts, TLS quirks, empty bodies from probe-hostile
+    # servers) is treated as alive — datacenter probes are blocked by many
+    # community hosts, and a blocked probe is not evidence a stream is down
+    # for a real player.
+    DEAD_HTTP_STATUS = {400, 404, 410, 451}
+    DEAD_ERROR_MARKERS = ("no address associated", "name or service not known", "name resolution", "connection refused", "connection reset", "network is unreachable", "certificate verify failed")
+
+    async def validate(self, channels: list[Channel], skip_urls: set[str] | None = None, soft_urls: set[str] | None = None) -> dict[str, Validation]:
         skip_urls = skip_urls or set()
+        soft_urls = soft_urls or set()
         results: dict[str, Validation] = {}
         pending: list[Channel] = []
         now = datetime.now(UTC)
@@ -50,10 +59,17 @@ class Validator:
         deep = await asyncio.gather(*(self._media_probe(c, v) for c, v in viable[: self.deep_limit]))
         deep_map = {c.url: v for (c, _), v in zip(viable[: self.deep_limit], deep)}
         for channel, value in zip(pending, probed):
+            if channel.url in soft_urls and not value.ok and self._soft_probe_confirms_dead(value):
+                # Soft policy: keep the link unless the probe PROVES it is dead.
+                value = Validation(ok=True, latency_ms=value.latency_ms, checked_at=now.isoformat(), error=f"soft-kept (probe said: {value.error})")
             results[channel.url] = deep_map.get(channel.url, value)
         self.cache_path.parent.mkdir(parents=True, exist_ok=True)
         self.cache_path.write_text(json.dumps({url: value.to_dict() for url, value in results.items()}, indent=2), encoding="utf-8")
         return results
+
+    def _soft_probe_confirms_dead(self, value: Validation) -> bool:
+        marker = (value.error or "").lower()
+        return any(f"HTTP {status}" in (value.error or "") for status in self.DEAD_HTTP_STATUS) or any(word in marker for word in self.DEAD_ERROR_MARKERS)
 
     async def _http_probe(self, session: aiohttp.ClientSession, channel: Channel) -> Validation:
         if urlsplit(channel.url).scheme not in {"http", "https"}:

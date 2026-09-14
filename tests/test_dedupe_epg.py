@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 import json
+from pathlib import Path
 
 from iptv_aggregator.dedupe import canonical_url, preselect_candidates, select_streams
 from iptv_aggregator.epg import EPGData, match_channels, normalized_epg_id
@@ -151,3 +152,19 @@ def test_epg_url_id_join():
     stats = match_channels([channel], epg)
     assert channel.tvg_id == "0b73ace69ebb45eaa249bb87837cb958"
     assert stats["epg_url_id"] == 1
+
+
+def test_soft_validation_removes_provably_dead_and_keeps_blocked():
+    from iptv_aggregator.validator import Validator
+
+    v = Validator(Path("nope.json"), timeout=5, concurrency=1, ttl_hours=24, deep_limit=0)
+    # 404 proves dead -> removed
+    assert v._soft_probe_confirms_dead(Validation(ok=False, error="HTTP 404")) is True
+    assert v._soft_probe_confirms_dead(Validation(ok=False, error="HTTP 410 Gone")) is True
+    assert v._soft_probe_confirms_dead(Validation(ok=False, error="[Errno -2] Name or service not known")) is True
+    assert v._soft_probe_confirms_dead(Validation(ok=False, error="Connection refused by peer")) is True
+    # 403 block / timeout / TLS quirk do NOT prove dead -> kept
+    assert v._soft_probe_confirms_dead(Validation(ok=False, error="HTTP 403")) is False
+    assert v._soft_probe_confirms_dead(Validation(ok=False, error="TimeoutError()")) is False
+    # Expired/mismatched TLS on a restream host is a probe quirk, not death.
+    assert v._soft_probe_confirms_dead(Validation(ok=False, error="SSL: CERTIFICATE_VERIFY_FAILED")) is False

@@ -45,9 +45,11 @@ async def run(config_path: str) -> dict:
     english_count = len(channels)
     channels, prevalidation_removed = preselect_candidates(channels, cfg["validation"]["candidates_per_identity"], cfg["validation"]["total_candidate_limit"])
     validator = Validator(work / "validation-cache.json", cfg["validation"]["timeout_seconds"], cfg["validation"]["concurrency"], cfg["validation"]["cache_ttl_hours"], cfg["validation"]["deep_probe_limit"])
-    skip_validation_urls = {source["id"]: source for source in sources if source.get("skip_validation")}
-    skip_urls = {c.url for c in channels if c.source_id in {sid for sid, s in skip_validation_urls.items() if s.get("skip_validation")}}
-    validations = await validator.validate(channels, skip_urls)
+    skip_sources = {source["id"] for source in sources if source.get("skip_validation")}
+    soft_sources = {source["id"] for source in sources if source.get("soft_validation")}
+    skip_urls = {c.url for c in channels if c.source_id in skip_sources}
+    soft_urls = {c.url for c in channels if c.source_id in soft_sources} - skip_urls
+    validations = await validator.validate(channels, skip_urls, soft_urls)
     selected, dedupe_stats = select_streams(channels, validations, cfg["dedupe"]["backups_per_channel"], cfg["filter"]["countries"]["prefer"])
     epg_names = set()
     for channel in selected:
