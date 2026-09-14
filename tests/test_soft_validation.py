@@ -1,5 +1,7 @@
 from iptv_aggregator.dedupe import select_streams
 from iptv_aggregator.models import Channel, Validation
+import json
+from pathlib import Path
 
 
 def test_soft_validation_semantics_remove_dead_keep_uncertain():
@@ -27,3 +29,11 @@ def test_aria_source_override_still_removes_confirmed_dead_entries():
     )
     assert [c.name for c in selected] == ["Aria live"]
     assert stats["identity_duplicates_removed"] == 1
+
+
+def test_aria_comparison_fixture_has_exact_status_breakdown():
+    fixture = json.loads(Path("config/fixtures/aria-missing-responsive.json").read_text())
+    statuses = list(fixture["statuses"].values())
+    assert len(statuses) == 39
+    assert statuses.count(200) == 12
+    assert statuses.count(206) == 27
