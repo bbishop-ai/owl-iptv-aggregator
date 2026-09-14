@@ -37,7 +37,7 @@ async def run(config_path: str) -> dict:
     channels = [normalize_channel(channel) for channel in channels]
     fixture_path = Path(cfg["_root"]) / cfg["validation"].get("responsive_fixture", "")
     fixture = json.loads(fixture_path.read_text(encoding="utf-8")) if fixture_path.is_file() else {}
-    fixture_urls = set(fixture.get("statuses", {}))
+    fixture_urls = set(fixture.get("statuses", {})) | set(fixture.get("preserve_urls", []))
     language_counts = Counter(channel.language for channel in channels)
     confirmed_english = language_counts["en"]
     confirmed_non_english = sum(count for language, count in language_counts.items() if language not in {"en", "unknown"})
@@ -65,7 +65,7 @@ async def run(config_path: str) -> dict:
         fixture_checked_at = fixture.get("checked_at", "comparison probe fixture")
         for channel in channels:
             status = fixture.get("statuses", {}).get(channel.url)
-            if status in {200, 206}:
+            if status in {200, 206} or channel.url in fixture.get("preserve_urls", []):
                 validations[channel.url] = Validation(
                     ok=True,
                     checked_at=fixture_checked_at,
