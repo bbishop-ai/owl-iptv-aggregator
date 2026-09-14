@@ -1,5 +1,7 @@
 from iptv_aggregator.dedupe import select_streams
+from iptv_aggregator.dedupe import canonical_url
 from iptv_aggregator.models import Channel, Validation
+from iptv_aggregator.parse import parse_playlist
 import json
 from pathlib import Path
 
@@ -37,3 +39,8 @@ def test_aria_comparison_fixture_has_exact_status_breakdown():
     assert len(statuses) == 39
     assert statuses.count(200) == 12
     assert statuses.count(206) == 27
+    source = parse_playlist(Path("config/playlists/aria-plus-united-states.m3u").read_text(), "aria")
+    source_urls = {canonical_url(channel.url) for channel in source}
+    fixture_urls = {canonical_url(url) for url in fixture["statuses"]}
+    assert len(fixture_urls) == 39
+    assert fixture_urls <= source_urls
