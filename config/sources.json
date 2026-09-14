@@ -3248,6 +3248,19 @@
       "declared_urls": [
         "https://epgshare01.online/epgshare01/epg_ripper_US_SPORTS1.xml.gz"
       ]
+    },
+    {
+      "id": "2d970ef03f49",
+      "url": "https://i.mjh.nz/PlutoTV/all.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "Matt Huisman Pluto TV all-regions guide"
+      ],
+      "declared_urls": [
+        "https://i.mjh.nz/PlutoTV/all.xml.gz"
+      ]
     }
   ]
 }
