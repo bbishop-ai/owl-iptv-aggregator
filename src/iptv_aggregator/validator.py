@@ -23,11 +23,18 @@ class Validator:
         self.deep_limit = deep_limit
         self.cache = json.loads(cache_path.read_text()) if cache_path.exists() else {}
 
-    async def validate(self, channels: list[Channel]) -> dict[str, Validation]:
+    async def validate(self, channels: list[Channel], skip_urls: set[str] | None = None) -> dict[str, Validation]:
+        skip_urls = skip_urls or set()
         results: dict[str, Validation] = {}
         pending: list[Channel] = []
         now = datetime.now(UTC)
         for channel in channels:
+            if channel.url in skip_urls:
+                # Per-source policy: publish unprobed (community sources whose
+                # hosts block datacenter probes — a failed probe is not evidence
+                # the stream is down for a real player).
+                results[channel.url] = Validation(ok=True, checked_at=now.isoformat(), error="validation skipped (source policy)")
+                continue
             cached = self.cache.get(channel.url)
             if cached and cached.get("checked_at"):
                 age = now - datetime.fromisoformat(cached["checked_at"])

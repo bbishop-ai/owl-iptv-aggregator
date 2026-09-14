@@ -3287,6 +3287,22 @@
       "declared_urls": [
         "https://iptv-epg.org/files/epg-us.xml.gz"
       ]
+    },
+    {
+      "id": "5dab59855cb7",
+      "url": "https://raw.githubusercontent.com/aria-tv/aria/main/aria%2B/united_states.m3u",
+      "kind": "playlist",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "aria-tv/aria Aria+ US playlist (user-directed merge 2026-09-14)",
+        "Community-curated broadcast/Tuner/AFN channels; includes community restreams the source itself marks tvg-status=unstable",
+        "skip_validation=true: community source; datacenter probes are blocked by many hosts, publish unprobed per user direction"
+      ],
+      "declared_urls": [
+        "https://raw.githubusercontent.com/aria-tv/aria/main/aria%2B/united_states.m3u"
+      ],
+      "skip_validation": true
     }
   ]
 }
