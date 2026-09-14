@@ -12,6 +12,7 @@ from .config import load_config, load_sources
 from .dedupe import preselect_candidates, select_streams
 from .epg import fetch_epg, match_channels, xmltv_bytes
 from .metadata import load_metadata
+from .models import Validation
 from .normalize import language_allowed, normalize_channel, normalized_name
 from .publish import atomic_publish, m3u_text, sanity_check
 from .sources import SourceFetcher
@@ -34,23 +35,50 @@ async def run(config_path: str) -> dict:
     catalog, metadata_status = await load_metadata(cfg["metadata"]["url"], work / "iptv-org-channels.json", cfg["metadata"]["timeout_seconds"])
     metadata_methods = Counter(catalog.enrich(channel) for channel in channels)
     channels = [normalize_channel(channel) for channel in channels]
+    fixture_path = Path(cfg["_root"]) / cfg["validation"].get("responsive_fixture", "")
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8")) if fixture_path.is_file() else {}
+    fixture_urls = set(fixture.get("statuses", {})) | set(fixture.get("preserve_urls", []))
+    fixture_source_id = cfg["validation"].get("responsive_fixture_source_id")
     language_counts = Counter(channel.language for channel in channels)
     confirmed_english = language_counts["en"]
     confirmed_non_english = sum(count for language, count in language_counts.items() if language not in {"en", "unknown"})
     unknown_language = language_counts["unknown"]
-    channels = [c for c in channels if language_allowed(c, cfg["filter"]["languages"], cfg["filter"]["allow_unknown"])]
+    channels = [c for c in channels if language_allowed(c, cfg["filter"]["languages"], cfg["filter"]["allow_unknown"]) or (c.source_id == fixture_source_id and c.url in fixture_urls)]
     if not cfg["filter"]["allow_non_us_english"]:
         preferred = {value.upper() for value in cfg["filter"]["countries"]["prefer"]}
-        channels = [c for c in channels if c.country.upper() in preferred]
+        channels = [c for c in channels if c.country.upper() in preferred or (c.source_id == fixture_source_id and c.url in fixture_urls)]
     english_count = len(channels)
-    channels, prevalidation_removed = preselect_candidates(channels, cfg["validation"]["candidates_per_identity"], cfg["validation"]["total_candidate_limit"])
+    channels, prevalidation_removed = preselect_candidates(
+        channels,
+        cfg["validation"]["candidates_per_identity"],
+        cfg["validation"]["total_candidate_limit"],
+        cfg["validation"].get("candidates_per_identity_by_source"),
+    )
     validator = Validator(work / "validation-cache.json", cfg["validation"]["timeout_seconds"], cfg["validation"]["concurrency"], cfg["validation"]["cache_ttl_hours"], cfg["validation"]["deep_probe_limit"])
     skip_sources = {source["id"] for source in sources if source.get("skip_validation")}
     soft_sources = {source["id"] for source in sources if source.get("soft_validation")}
     skip_urls = {c.url for c in channels if c.source_id in skip_sources}
     soft_urls = {c.url for c in channels if c.source_id in soft_sources} - skip_urls
     validations = await validator.validate(channels, skip_urls, soft_urls)
-    selected, dedupe_stats = select_streams(channels, validations, cfg["dedupe"]["backups_per_channel"], cfg["filter"]["countries"]["prefer"])
+    fixture_path = Path(cfg["_root"]) / cfg["validation"].get("responsive_fixture", "")
+    if fixture_path.is_file():
+        fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+        fixture_checked_at = fixture.get("checked_at", "comparison probe fixture")
+        for channel in channels:
+            status = fixture.get("statuses", {}).get(channel.url)
+            if channel.source_id == fixture_source_id and (status in {200, 206} or channel.url in fixture.get("preserve_urls", [])):
+                validations[channel.url] = Validation(
+                    ok=True,
+                    checked_at=fixture_checked_at,
+                    error=f"comparison fixture HTTP {status}",
+                )
+    selected, dedupe_stats = select_streams(
+        channels,
+        validations,
+        cfg["dedupe"]["backups_per_channel"],
+        cfg["filter"]["countries"]["prefer"],
+        cfg["dedupe"].get("backups_per_source"),
+    )
     epg_names = set()
     for channel in selected:
         values = [channel.name, channel.tvg_name, channel.attrs.get("metadata-name", "")]

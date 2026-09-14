@@ -17,9 +17,15 @@ validation:
   cache_ttl_hours: 24
   deep_probe_limit: 250
   candidates_per_identity: 4
+  candidates_per_identity_by_source:
+    5dab59855cb7: 39
   total_candidate_limit: 5000
+  responsive_fixture: config/fixtures/aria-missing-responsive.json
+  responsive_fixture_source_id: 5dab59855cb7
 dedupe:
   backups_per_channel: 1
+  backups_per_source:
+    5dab59855cb7: 39
 epg:
   timeout_seconds: 240
   fuzzy_threshold: 93

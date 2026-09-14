@@ -27,6 +27,38 @@ def test_preselection_bounds_work_and_removes_token_variants():
     assert removed == 7
 
 
+def test_preselection_source_limit_preserves_aria_candidates_before_validation():
+    rows = [normalize_channel(Channel("Same channel", f"https://aria.test/{n}", "5dab59855cb7", tvg_id="same")) for n in range(6)]
+    selected, removed = preselect_candidates(
+        rows,
+        per_identity=4,
+        total_limit=20,
+        per_source={"5dab59855cb7": 39},
+    )
+    assert len(selected) == 6
+    assert removed == 0
+
+
+def test_source_backup_limit_preserves_all_viable_aria_entries():
+    rows = [normalize_channel(Channel("Same channel", f"https://aria.test/{n}", "5dab59855cb7", tvg_id="same")) for n in range(6)]
+    validations = {row.url: Validation(ok=True) for row in rows}
+    selected, stats = select_streams(
+        rows,
+        validations,
+        backups=1,
+        backups_by_source={"5dab59855cb7": 39},
+    )
+    assert len(selected) == 6
+    assert stats["identity_duplicates_removed"] == 0
+
+
+def test_source_backup_limit_does_not_change_other_sources():
+    rows = [normalize_channel(Channel("Same channel", f"https://other.test/{n}", "other", tvg_id="same")) for n in range(3)]
+    selected, stats = select_streams(rows, {row.url: Validation(ok=True) for row in rows}, backups=1, backups_by_source={"5dab59855cb7": 39})
+    assert len(selected) == 2
+    assert stats["identity_duplicates_removed"] == 1
+
+
 def test_epg_exact_id_then_exact_name():
     one = ET.fromstring('<channel id="bbc.one.uk"><display-name>BBC One</display-name></channel>')
     epg = EPGData(channels={"bbc.one.uk": one})
