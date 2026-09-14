@@ -3274,6 +3274,19 @@
       "declared_urls": [
         "https://epgshare01.online/epgshare01/epg_ripper_ALL_SOURCES1.xml.gz"
       ]
+    },
+    {
+      "id": "c0ec8ac71939",
+      "url": "https://iptv-epg.org/files/epg-us.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "iptv-epg.org US aggregate guide"
+      ],
+      "declared_urls": [
+        "https://iptv-epg.org/files/epg-us.xml.gz"
+      ]
     }
   ]
 }
