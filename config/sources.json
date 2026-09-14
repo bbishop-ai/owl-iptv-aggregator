@@ -3290,19 +3290,20 @@
     },
     {
       "id": "5dab59855cb7",
-      "url": "https://raw.githubusercontent.com/aria-tv/aria/main/aria%2B/united_states.m3u",
+      "url": "bundled://aria-plus-united-states",
       "kind": "playlist",
       "enabled": true,
       "cloud_compatible": true,
       "provenance": [
-        "aria-tv/aria Aria+ US playlist (user-directed merge 2026-09-14)",
-        "Community-curated broadcast/Tuner/AFN channels; includes community restreams the source itself marks tvg-status=unstable",
-        "soft_validation=true: probe but only remove links that PROVE dead (404/410/451/400, DNS/refused/reset) — 403/timeouts/TLS-quirk blocks stay published (user rule 2026-09-14: remove dead links)"
+        "aria-tv/aria Aria+ US playlist, checked in as config/playlists/aria-plus-united-states.m3u",
+        "Original source: https://raw.githubusercontent.com/aria-tv/aria/main/aria%2B/united_states.m3u",
+        "Community-curated broadcast/Turner/AFN channels; soft_validation=true removes only provably dead links (user-directed)"
       ],
       "declared_urls": [
         "https://raw.githubusercontent.com/aria-tv/aria/main/aria%2B/united_states.m3u"
       ],
-      "soft_validation": true
+      "soft_validation": true,
+      "path": "config/playlists/aria-plus-united-states.m3u"
     }
   ]
 }
