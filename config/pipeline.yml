@@ -21,7 +21,7 @@ validation:
 dedupe:
   backups_per_channel: 1
 epg:
-  timeout_seconds: 45
+  timeout_seconds: 240
   fuzzy_threshold: 93
 publish:
   directory: public

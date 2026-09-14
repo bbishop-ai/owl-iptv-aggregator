@@ -111,3 +111,43 @@ def test_epg_ambiguous_stripped_key_not_auto_joined():
     # "feed" is claimed by two guide channels, so the join must stay off.
     assert channel.tvg_id == ""
     assert stats["epg_unmatched"] == 1
+
+
+def test_epg_region_guard_blocks_cross_country_join():
+    au = ET.fromstring('<channel id="Oxygen.au"><display-name>Oxygen</display-name></channel>')
+    epg = EPGData(channels={"Oxygen.au": au})
+    channel = Channel("Oxygen (720p)", "https://x.test", "x", tvg_id="Oxygen.us")
+    stats = match_channels([channel], epg)
+    # .us channel must not join an .au guide entry with the same name.
+    assert channel.tvg_id == "Oxygen.us"
+    assert stats["epg_unmatched"] == 1
+
+
+def test_epg_region_guard_allows_same_region_join():
+    us = ET.fromstring('<channel id="Business.Rockstars.distro"><display-name>Business Rockstars</display-name></channel>')
+    epg = EPGData(channels={"Business.Rockstars.distro": us})
+    channel = Channel("Business Rockstars (720p)", "https://x.test", "x", tvg_id="BusinessRockstars.us")
+    stats = match_channels([channel], epg)
+    assert channel.tvg_id == "Business.Rockstars.distro"
+    assert stats["epg_exact_name"] == 1
+
+
+def test_epg_no_region_means_no_guard():
+    ae = ET.fromstring('<channel id="AWE.ae"><display-name>AWE</display-name></channel>')
+    epg = EPGData(channels={"AWE.ae": ae})
+    channel = Channel("AWE", "https://x.test", "x", tvg_id="")
+    stats = match_channels([channel], epg)
+    assert channel.tvg_id == "AWE.ae"
+    assert stats["epg_exact_name"] == 1
+
+
+def test_epg_url_id_join():
+    guide = ET.fromstring('<channel id="0b73ace69ebb45eaa249bb87837cb958"><display-name>Red Bull TV US</display-name></channel>')
+    epg = EPGData(
+        channels={"0b73ace69ebb45eaa249bb87837cb958": guide},
+        channel_source={"0b73ace69ebb45eaa249bb87837cb958": "s1"},
+    )
+    channel = Channel("Red Bull TV US (1080p)", "https://jmp2.uk/plu-0b73ace69ebb45eaa249bb87837cb958", "x", tvg_id="RedBullTV.at@US")
+    stats = match_channels([channel], epg)
+    assert channel.tvg_id == "0b73ace69ebb45eaa249bb87837cb958"
+    assert stats["epg_url_id"] == 1

@@ -118,6 +118,12 @@ def _epg_source_rank(source: dict[str, Any]) -> int:
     return 5
 
 
+def _epg_id_region(epg_id: str) -> str | None:
+    """Trailing region code of an XMLTV id (iptv-org style: Name.us2 -> us)."""
+    m = re.search(r"\.([a-z]{2})\d*$", epg_id or "")
+    return m.group(1) if m else None
+
+
 def match_channels(channels: list[Channel], epg: EPGData, fuzzy_threshold: int = 96):
     """Match channels to EPG ids.
 
@@ -178,6 +184,10 @@ def match_channels(channels: list[Channel], epg: EPGData, fuzzy_threshold: int =
         for channel in unassigned:
             if channel.tvg_id in epg.channels:
                 continue
+            # Region guard: a channel already carries a country-coded tvg-id
+            # (e.g. Oxygen.us); a same-name guide entry for a different region
+            # (Oxygen.au) is a different channel, not a match.
+            want_region = _epg_id_region(channel.tvg_id) if channel.tvg_id else None
             normalized_ids = ids.get(normalized_epg_id(channel.tvg_id), []) if channel.tvg_id else []
             if len(normalized_ids) == 1:
                 channel.tvg_id = normalized_ids[0]
@@ -191,6 +201,10 @@ def match_channels(channels: list[Channel], epg: EPGData, fuzzy_threshold: int =
             for value in [channel.tvg_name, channel.name, channel.attrs.get("metadata-name", ""), *alt_names]:
                 keys |= name_variants(value)
             exact_ids = {ids[0] for key in keys for ids in [names.get(key, [])] if len(ids) == 1}
+            if want_region:
+                # Only reject when the guide id *carries* a different region;
+                # region-less ids (distro/hex namespaces) can't conflict.
+                exact_ids = {eid for eid in exact_ids if _epg_id_region(eid) in (None, want_region)}
             if len(exact_ids) == 1:
                 channel.tvg_id = exact_ids.pop()
                 stats["epg_exact_name"] += 1
@@ -198,8 +212,10 @@ def match_channels(channels: list[Channel], epg: EPGData, fuzzy_threshold: int =
             # Fuzzy: word-order-insensitive, unique best target within this guide.
             scored = sorted(((max((token_sort_ratio(key, candidate) for key in keys), default=0), ids) for candidate, ids in names.items()), reverse=True)
             if scored and scored[0][0] >= fuzzy_threshold and len(scored[0][1]) == 1 and (len(scored) == 1 or scored[0][0] > scored[1][0]):
-                channel.tvg_id = scored[0][1][0]
-                stats["epg_fuzzy"] += 1
+                candidate_id = scored[0][1][0]
+                if want_region is None or _epg_id_region(candidate_id) in (None, want_region):
+                    channel.tvg_id = candidate_id
+                    stats["epg_fuzzy"] += 1
     for channel in unassigned:
         if channel.tvg_id not in epg.channels:
             stats["epg_unmatched"] += 1

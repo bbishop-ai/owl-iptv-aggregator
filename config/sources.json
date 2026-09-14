@@ -3261,6 +3261,19 @@
       "declared_urls": [
         "https://i.mjh.nz/PlutoTV/all.xml.gz"
       ]
+    },
+    {
+      "id": "51afb6d197bd",
+      "url": "https://epgshare01.online/epgshare01/epg_ripper_ALL_SOURCES1.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "EPGshare01 all-sources combined guide"
+      ],
+      "declared_urls": [
+        "https://epgshare01.online/epgshare01/epg_ripper_ALL_SOURCES1.xml.gz"
+      ]
     }
   ]
 }
