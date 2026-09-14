@@ -59,8 +59,9 @@ class Validator:
         deep = await asyncio.gather(*(self._media_probe(c, v) for c, v in viable[: self.deep_limit]))
         deep_map = {c.url: v for (c, _), v in zip(viable[: self.deep_limit], deep)}
         for channel, value in zip(pending, probed):
-            if channel.url in soft_urls and not value.ok and self._soft_probe_confirms_dead(value):
-                # Soft policy: keep the link unless the probe PROVES it is dead.
+            if channel.url in soft_urls and not value.ok and not self._soft_probe_confirms_dead(value):
+                # Soft policy: keep a blocked/uncertain link; definitive death
+                # remains failed and is removed by select_streams.
                 value = Validation(ok=True, latency_ms=value.latency_ms, checked_at=now.isoformat(), error=f"soft-kept (probe said: {value.error})")
             results[channel.url] = deep_map.get(channel.url, value)
         self.cache_path.parent.mkdir(parents=True, exist_ok=True)
