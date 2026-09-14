@@ -26,7 +26,7 @@ Edit `config/pipeline.yml`:
 
 - `filter.languages`: ISO-639-1 codes; defaults to `[en]`.
 - `filter.countries.prefer`: defaults to `[US]` and influences duplicate ranking.
-- `filter.allow_non_us_english`: defaults to `true`, so useful English international channels remain eligible.
+- `filter.allow_non_us_english`: set to `false`, keeping the published feed limited to US channels.
 - `filter.allow_unknown`: defaults to `false`. Unknown-language rows are counted and excluded rather than silently treated as English.
 - `validation.deep_probe_limit`: limits expensive ffprobe/frozen-frame checks.
 - `dedupe.backups_per_channel`: defaults to one backup per normalized identity.

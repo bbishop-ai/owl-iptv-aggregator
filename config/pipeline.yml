@@ -3,7 +3,7 @@ filter:
   languages: [en]
   countries:
     prefer: [US]
-  allow_non_us_english: true
+  allow_non_us_english: false
   allow_unknown: false
 metadata:
   url: https://iptv-org.github.io/api/channels.json
