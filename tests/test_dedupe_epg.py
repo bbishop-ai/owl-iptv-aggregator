@@ -6,6 +6,7 @@ from iptv_aggregator.dedupe import canonical_url, preselect_candidates, select_s
 from iptv_aggregator.epg import EPGData, match_channels, normalized_epg_id
 from iptv_aggregator.models import Channel, Validation
 from iptv_aggregator.normalize import normalize_channel
+from iptv_aggregator.normalize import simple_category
 
 
 def test_rank_primary_and_backup_and_strip_volatile_tokens():

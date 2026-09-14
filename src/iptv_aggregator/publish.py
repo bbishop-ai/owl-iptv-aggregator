@@ -7,6 +7,7 @@ import shutil
 from pathlib import Path
 
 from .models import Channel, Validation
+from .normalize import simple_category
 
 
 def m3u_text(channels: list[Channel], epg_url: str, validations: dict[str, Validation]) -> str:
@@ -17,7 +18,7 @@ def m3u_text(channels: list[Channel], epg_url: str, validations: dict[str, Valid
             "tvg-id": channel.tvg_id,
             "tvg-name": channel.tvg_name or channel.name,
             "tvg-logo": channel.logo,
-            "group-title": channel.group or "Other",
+            "group-title": simple_category(channel),
             "tvg-language": channel.language,
             "owl-role": channel.role,
         }

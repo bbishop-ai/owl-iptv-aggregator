@@ -59,6 +59,33 @@ def classify_language(channel: Channel) -> str:
     return "unknown"
 
 
+def simple_category(channel: Channel) -> str:
+    """Collapse provider group labels into one stable, player-friendly category."""
+    text = " ".join((channel.group, channel.name, channel.attrs.get("metadata-name", ""))).casefold()
+    groups = {part.strip().casefold() for part in re.split(r"[;,|]", channel.group) if part.strip()}
+    if groups & {"news", "weather", "legislative", "current affairs"} or re.search(r"\bnews\b|weather|c-span|cspan|congress|senate|house of representatives", text):
+        return "News"
+    if "sports" in groups or re.search(r"sports?|espn|nfl|nba|mlb|nhl|golf|tennis|soccer|football|basketball|baseball|hockey|racing|wrestling|boxing|ufc", text):
+        return "Sports"
+    if "movies" in groups or re.search(r"movies?|films?|cinema", text):
+        return "Movies"
+    if "kids" in groups or "family" in groups or re.search(r"\bkids?\b|children|cartoon|nickelodeon|disney junior", text):
+        return "Kids"
+    if "music" in groups or re.search(r"\bmusic\b|concert|radio", text):
+        return "Music"
+    if "religious" in groups or re.search(r"religious|religion|church|gospel|bible|christian|islamic|quran", text):
+        return "Religion"
+    if "education" in groups or re.search(r"education|educational|science|history|learning|university", text):
+        return "Education"
+    if "local" in groups or re.search(r"\blocal\b|community", text):
+        return "Local"
+    if groups & {"lifestyle", "cooking", "outdoor", "travel", "auto", "business", "shop"} or re.search(r"lifestyle|cooking|food|travel|outdoor|fishing|auto|cars?|business|finance|shopping", text):
+        return "Lifestyle"
+    if groups & {"series", "entertainment", "comedy", "animation", "classic", "documentary", "culture", "general", "undefined"} or re.search(r"series|entertainment|comedy|animation|classic|documentary|culture", text):
+        return "Entertainment"
+    return "Other"
+
+
 def normalize_channel(channel: Channel) -> Channel:
     channel.name = re.sub(r"\s+", " ", channel.name).strip()
     channel.language = classify_language(channel)
