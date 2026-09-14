@@ -14,3 +14,16 @@ def test_soft_validation_semantics_remove_dead_keep_uncertain():
         backups=0,
     )
     assert [c.name for c in selected] == ["Blocked"]
+
+
+def test_aria_source_override_still_removes_confirmed_dead_entries():
+    dead = Channel("Aria dead", "https://aria.test/dead", "5dab59855cb7", identity="id:aria")
+    live = Channel("Aria live", "https://aria.test/live", "5dab59855cb7", identity="id:aria")
+    selected, stats = select_streams(
+        [dead, live],
+        {dead.url: Validation(ok=False, error="HTTP 404"), live.url: Validation(ok=True)},
+        backups=0,
+        backups_by_source={"5dab59855cb7": 39},
+    )
+    assert [c.name for c in selected] == ["Aria live"]
+    assert stats["identity_duplicates_removed"] == 1

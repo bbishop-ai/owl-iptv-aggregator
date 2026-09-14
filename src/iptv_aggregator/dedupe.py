@@ -21,7 +21,12 @@ def rank(channel: Channel, validation: Validation, preferred_countries: set[str]
     return (validation.ok, validation.frozen is not True, country_preferred, pixels, validation.height or 0, validation.fps or 0, channel.url.startswith("https://"), -latency)
 
 
-def preselect_candidates(channels: list[Channel], per_identity: int, total_limit: int) -> tuple[list[Channel], int]:
+def preselect_candidates(
+    channels: list[Channel],
+    per_identity: int,
+    total_limit: int,
+    per_source: dict[str, int] | None = None,
+) -> tuple[list[Channel], int]:
     """Remove exact URLs and bound validation while retaining source diversity per identity."""
     seen_urls: set[str] = set()
     counts: dict[str, int] = defaultdict(int)
@@ -31,7 +36,8 @@ def preselect_candidates(channels: list[Channel], per_identity: int, total_limit
     ordered = sorted(channels, key=lambda c: (bool(c.tvg_id), bool(c.logo), c.url.startswith("https://")), reverse=True)
     for channel in ordered:
         key = canonical_url(channel.url)
-        if key in seen_urls or counts[channel.identity] >= per_identity or len(selected) >= total_limit:
+        source_limit = (per_source or {}).get(channel.source_id, per_identity)
+        if key in seen_urls or counts[channel.identity] >= source_limit or len(selected) >= total_limit:
             removed += 1
             continue
         seen_urls.add(key)
@@ -40,7 +46,13 @@ def preselect_candidates(channels: list[Channel], per_identity: int, total_limit
     return selected, removed
 
 
-def select_streams(channels: list[Channel], validations: dict[str, Validation], backups: int = 1, preferred_countries: list[str] | None = None):
+def select_streams(
+    channels: list[Channel],
+    validations: dict[str, Validation],
+    backups: int = 1,
+    preferred_countries: list[str] | None = None,
+    backups_by_source: dict[str, int] | None = None,
+):
     exact_seen: set[str] = set()
     by_identity: dict[str, list[Channel]] = defaultdict(list)
     exact_removed = 0
@@ -57,7 +69,17 @@ def select_streams(channels: list[Channel], validations: dict[str, Validation], 
         viable = [c for c in candidates if validations.get(c.url, Validation()).ok]
         preferred = {value.upper() for value in (preferred_countries or [])}
         viable.sort(key=lambda c: rank(c, validations[c.url], preferred), reverse=True)
-        keep = viable[: 1 + backups]
+        source_limits = {
+            source_id: 1 + (backups_by_source or {}).get(source_id, backups)
+            for source_id in {c.source_id for c in candidates}
+        }
+        keep = []
+        source_counts: dict[str, int] = defaultdict(int)
+        for channel in viable:
+            if source_counts[channel.source_id] >= source_limits[channel.source_id]:
+                continue
+            keep.append(channel)
+            source_counts[channel.source_id] += 1
         for index, channel in enumerate(keep):
             channel.role = "primary" if index == 0 else "backup"
             selected.append(channel)
