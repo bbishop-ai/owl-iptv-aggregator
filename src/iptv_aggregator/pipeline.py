@@ -38,14 +38,15 @@ async def run(config_path: str) -> dict:
     fixture_path = Path(cfg["_root"]) / cfg["validation"].get("responsive_fixture", "")
     fixture = json.loads(fixture_path.read_text(encoding="utf-8")) if fixture_path.is_file() else {}
     fixture_urls = set(fixture.get("statuses", {})) | set(fixture.get("preserve_urls", []))
+    fixture_source_id = cfg["validation"].get("responsive_fixture_source_id")
     language_counts = Counter(channel.language for channel in channels)
     confirmed_english = language_counts["en"]
     confirmed_non_english = sum(count for language, count in language_counts.items() if language not in {"en", "unknown"})
     unknown_language = language_counts["unknown"]
-    channels = [c for c in channels if language_allowed(c, cfg["filter"]["languages"], cfg["filter"]["allow_unknown"]) or c.url in fixture_urls]
+    channels = [c for c in channels if language_allowed(c, cfg["filter"]["languages"], cfg["filter"]["allow_unknown"]) or (c.source_id == fixture_source_id and c.url in fixture_urls)]
     if not cfg["filter"]["allow_non_us_english"]:
         preferred = {value.upper() for value in cfg["filter"]["countries"]["prefer"]}
-        channels = [c for c in channels if c.country.upper() in preferred or c.url in fixture_urls]
+        channels = [c for c in channels if c.country.upper() in preferred or (c.source_id == fixture_source_id and c.url in fixture_urls)]
     english_count = len(channels)
     channels, prevalidation_removed = preselect_candidates(
         channels,
@@ -65,7 +66,7 @@ async def run(config_path: str) -> dict:
         fixture_checked_at = fixture.get("checked_at", "comparison probe fixture")
         for channel in channels:
             status = fixture.get("statuses", {}).get(channel.url)
-            if status in {200, 206} or channel.url in fixture.get("preserve_urls", []):
+            if channel.source_id == fixture_source_id and (status in {200, 206} or channel.url in fixture.get("preserve_urls", [])):
                 validations[channel.url] = Validation(
                     ok=True,
                     checked_at=fixture_checked_at,
