@@ -3304,6 +3304,45 @@
       ],
       "soft_validation": true,
       "path": "config/playlists/aria-plus-united-states.m3u"
+    },
+    {
+      "id": "ba3f493d253b",
+      "url": "https://epg.pw/xmltv/epg_US.xml",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "epg.pw US XMLTV guide"
+      ],
+      "declared_urls": [
+        "https://epg.pw/xmltv/epg_US.xml"
+      ]
+    },
+    {
+      "id": "22d474d6076d",
+      "url": "https://raw.githubusercontent.com/acidjesuz/EPGTalk/master/US_guide.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "EPGTalk US guide"
+      ],
+      "declared_urls": [
+        "https://raw.githubusercontent.com/acidjesuz/EPGTalk/master/US_guide.xml.gz"
+      ]
+    },
+    {
+      "id": "ad56524531d6",
+      "url": "https://raw.githubusercontent.com/acidjesuz/EPGTalk/master/US_local_guide.xml.gz",
+      "kind": "epg",
+      "enabled": true,
+      "cloud_compatible": true,
+      "provenance": [
+        "EPGTalk US local guide"
+      ],
+      "declared_urls": [
+        "https://raw.githubusercontent.com/acidjesuz/EPGTalk/master/US_local_guide.xml.gz"
+      ]
     }
   ]
 }
