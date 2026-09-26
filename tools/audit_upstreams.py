@@ -101,14 +101,43 @@ def build(roots: dict[str, Path], output_root: Path):
             "provenance": sorted({i["repo"] for i in items}),
             "declared_urls": sorted({i["declared_url"] for i in items}),
         })
-    # Curated IPTV-org English EPG guides; separated from the audited three-repo superset.
+    # Curated English EPG guides; separated from the audited three-repo superset.
     additions = [
-        ("https://worker-9dd4.onrender.com/guide.xml.gz", "iptv-org/epg GUIDES.md"),
-        ("https://vcicio.github.io/US-EPG/merged_epg.xml.gz", "US-EPG (built from iptv-org/epg-listed EPGshare inputs)"),
+        {
+            "url": "https://worker-9dd4.onrender.com/guide.xml.gz",
+            "enabled": False,
+            "provenance": ["iptv-org/epg GUIDES.md"],
+            "declared_urls": ["https://worker-9dd4.onrender.com/guide.xml.gz"],
+        },
+        {
+            "url": "https://vcicio.github.io/US-EPG/merged_epg.xml.gz",
+            "enabled": True,
+            "provenance": ["US-EPG (built from iptv-org/epg-listed EPGshare inputs)"],
+            "declared_urls": ["https://vcicio.github.io/US-EPG/merged_epg.xml.gz"],
+        },
+        {
+            "url": "https://raw.githubusercontent.com/BuddyChewChew/tubi-scraper/refs/heads/main/tubi_epg.xml",
+            "enabled": True,
+            "provenance": ["BuddyChewChew Tubi guide", "BuddyChewChew/tubi-scraper replacement"],
+            "declared_urls": [
+                "https://raw.githubusercontent.com/BuddyChewChew/tubi-scraper/refs/heads/main/tubi_epg.xml",
+                "https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/tubi_epg.xml",
+            ],
+        },
     ]
-    for url, provenance in additions:
+    for addition in additions:
+        url = addition["url"]
         if url not in grouped:
-            sources.append({"id": hashlib.sha256(url.encode()).hexdigest()[:12], "url": url, "kind": "epg", "enabled": True, "cloud_compatible": True, "provenance": [provenance], "declared_urls": [url]})
+            sources.append({
+                "id": hashlib.sha256(url.encode()).hexdigest()[:12],
+                "url": url,
+                "kind": "epg",
+                "enabled": addition["enabled"],
+                "cloud_compatible": True,
+                "provenance": addition["provenance"],
+                "declared_urls": addition["declared_urls"],
+            })
+
     repo_sets = {repo: sorted({o["url"] for o in occurrences if o["repo"] == repo}) for repo in REPOSITORIES}
     base = set(repo_sets["cs3306/IPTV-sources"])
     other = set(repo_sets["HerbertHe/iptv-sources"]) | set(repo_sets["walke2019/iptv-api-two"])
