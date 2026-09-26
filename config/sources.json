@@ -3070,7 +3070,7 @@
       "id": "9785cbf18059",
       "url": "https://worker-9dd4.onrender.com/guide.xml.gz",
       "kind": "epg",
-      "enabled": true,
+      "enabled": false,
       "cloud_compatible": true,
       "provenance": [
         "iptv-org/epg GUIDES.md"
@@ -3185,15 +3185,17 @@
       ]
     },
     {
-      "id": "0e3d5b63f430",
-      "url": "https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/tubi_epg.xml",
+      "id": "6dff8a142750",
+      "url": "https://raw.githubusercontent.com/BuddyChewChew/tubi-scraper/refs/heads/main/tubi_epg.xml",
       "kind": "epg",
       "enabled": true,
       "cloud_compatible": true,
       "provenance": [
-        "BuddyChewChew Tubi guide"
+        "BuddyChewChew Tubi guide",
+        "BuddyChewChew/tubi-scraper replacement"
       ],
       "declared_urls": [
+        "https://raw.githubusercontent.com/BuddyChewChew/tubi-scraper/refs/heads/main/tubi_epg.xml",
         "https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/tubi_epg.xml"
       ]
     },
