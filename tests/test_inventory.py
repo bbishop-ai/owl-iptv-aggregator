@@ -51,7 +51,16 @@ def test_tubi_epg_uses_verified_replacement_and_preserves_provenance():
 def test_audit_regeneration_preserves_suspended_render_epg_as_disabled(monkeypatch, tmp_path):
     from tools import audit_upstreams
 
-    monkeypatch.setattr(audit_upstreams, "extract_cs", lambda root: [])
+    render_url = "https://worker-9dd4.onrender.com/guide.xml.gz"
+    grouped_render = {
+        "repo": "cs3306/IPTV-sources",
+        "declared_url": render_url,
+        "url": render_url,
+        "path": "config.json:epg_urls",
+        "kind": "epg",
+        "cloud_compatible": True,
+    }
+    monkeypatch.setattr(audit_upstreams, "extract_cs", lambda root: [grouped_render])
     monkeypatch.setattr(audit_upstreams, "extract_herbert", lambda root: [])
     monkeypatch.setattr(audit_upstreams, "extract_walke", lambda root: [])
     monkeypatch.setattr(audit_upstreams, "git_sha", lambda root: "test-sha")
@@ -64,9 +73,11 @@ def test_audit_regeneration_preserves_suspended_render_epg_as_disabled(monkeypat
     render_url = "https://worker-9dd4.onrender.com/guide.xml.gz"
 
     render_source = by_url[render_url]
+    assert sum(item["url"] == render_url for item in generated) == 1
     assert render_source["enabled"] is False
     assert render_source["id"] == "9785cbf18059"
     assert "iptv-org/epg GUIDES.md" in render_source["provenance"]
+    assert "cs3306/IPTV-sources" in render_source["provenance"]
     assert render_url in render_source["declared_urls"]
 
     replacement_url = "https://raw.githubusercontent.com/BuddyChewChew/tubi-scraper/refs/heads/main/tubi_epg.xml"
