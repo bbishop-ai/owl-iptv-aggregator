@@ -125,10 +125,12 @@ def build(roots: dict[str, Path], output_root: Path):
             ],
         },
     ]
+    source_by_url = {source["url"]: source for source in sources}
     for addition in additions:
         url = addition["url"]
-        if url not in grouped:
-            sources.append({
+        source = source_by_url.get(url)
+        if source is None:
+            source = {
                 "id": hashlib.sha256(url.encode()).hexdigest()[:12],
                 "url": url,
                 "kind": "epg",
@@ -136,7 +138,17 @@ def build(roots: dict[str, Path], output_root: Path):
                 "cloud_compatible": True,
                 "provenance": addition["provenance"],
                 "declared_urls": addition["declared_urls"],
-            })
+            }
+            sources.append(source)
+            source_by_url[url] = source
+            continue
+        source.update({
+            "kind": "epg",
+            "enabled": addition["enabled"],
+            "cloud_compatible": True,
+            "provenance": sorted(set(source["provenance"]) | set(addition["provenance"])),
+            "declared_urls": sorted(set(source["declared_urls"]) | set(addition["declared_urls"])),
+        })
 
     repo_sets = {repo: sorted({o["url"] for o in occurrences if o["repo"] == repo}) for repo in REPOSITORIES}
     base = set(repo_sets["cs3306/IPTV-sources"])
