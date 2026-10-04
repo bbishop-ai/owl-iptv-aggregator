@@ -1863,7 +1863,7 @@
       "id": "4963d1f5313f",
       "url": "https://gitee.com/taksssss/tv/raw/main/epg/112114.xml.gz",
       "kind": "epg",
-      "enabled": true,
+      "enabled": false,
       "cloud_compatible": true,
       "provenance": [
         "cs3306/IPTV-sources"
